@@ -1,15 +1,11 @@
 package cn.linj2n.spring.security.config;
 
-import cn.linj2n.spring.security.config.support.GithubAuthoritiesExtractor;
 import cn.linj2n.spring.security.config.support.GithubPrincipalExtractor;
-import cn.linj2n.spring.security.service.security.CustomUserInfoTokenService;
-import cn.linj2n.spring.security.service.security.SocialUserDetailsService;
+import cn.linj2n.spring.security.service.security.The3rdPartyUserInfoTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.autoconfigure.security.oauth2.resource.AuthoritiesExtractor;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.PrincipalExtractor;
 import org.springframework.boot.autoconfigure.security.oauth2.resource.ResourceServerProperties;
-import org.springframework.boot.autoconfigure.security.oauth2.resource.UserInfoTokenServices;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import org.springframework.context.annotation.Bean;
@@ -35,7 +31,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Configuration
 @EnableWebSecurity
@@ -72,21 +67,20 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     private Filter ssoFilter() {
         CompositeFilter filter = new CompositeFilter();
         List<Filter> filters = new ArrayList<>();
-        filters.add(ssoFilter(github(), "/login/github", githubPrincipalExtractor(), githubAuthoritiesExtractor()));
+        filters.add(ssoFilter(github(), "/login/github", githubPrincipalExtractor()));
         // add other ssoFilters eg. facebook, google...
         filter.setFilters(filters);
         return filter;
     }
 
-    private Filter ssoFilter(ClientResources client, String path, PrincipalExtractor principalExtractor, AuthoritiesExtractor authoritiesExtractor) {
+    private Filter ssoFilter(ClientResources client, String path, PrincipalExtractor principalExtractor) {
         OAuth2ClientAuthenticationProcessingFilter filter = new OAuth2ClientAuthenticationProcessingFilter(path);
         OAuth2RestTemplate template = new OAuth2RestTemplate(client.getClient(), oauth2ClientContext);
         filter.setRestTemplate(template);
-        CustomUserInfoTokenService tokenServices = new SocialUserDetailsService(
+        The3rdPartyUserInfoTokenService tokenServices = new The3rdPartyUserInfoTokenService(
                 client.getResource().getUserInfoUri(), client.getClient().getClientId());
         tokenServices.setRestTemplate(template);
         tokenServices.setPrincipalExtractor(principalExtractor);
-        tokenServices.setAuthoritiesExtractor(authoritiesExtractor);
         filter.setTokenServices(tokenServices);
         filter.setAuthenticationSuccessHandler(new SimpleUrlAuthenticationSuccessHandler() {
             @Override
@@ -113,6 +107,56 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         @NestedConfigurationProperty
         private ResourceServerProperties resource = new ResourceServerProperties();
 
+        private String usernameKey;
+
+        private String loginKey;
+
+        private String emailKey;
+
+        private String avatarUrlKey;
+
+        private String urlKey;
+
+        public String getUsernameKey() {
+            return usernameKey;
+        }
+
+        public void setUsernameKey(String usernameKey) {
+            this.usernameKey = usernameKey;
+        }
+
+        public String getLoginKey() {
+            return loginKey;
+        }
+
+        public void setLoginKey(String loginKey) {
+            this.loginKey = loginKey;
+        }
+
+        public String getEmailKey() {
+            return emailKey;
+        }
+
+        public void setEmailKey(String emailKey) {
+            this.emailKey = emailKey;
+        }
+
+        public String getAvatarUrlKey() {
+            return avatarUrlKey;
+        }
+
+        public void setAvatarUrlKey(String avatarUrlKey) {
+            this.avatarUrlKey = avatarUrlKey;
+        }
+
+        public String getUrlKey() {
+            return urlKey;
+        }
+
+        public void setUrlKey(String urlKey) {
+            this.urlKey = urlKey;
+        }
+
         public AuthorizationCodeResourceDetails getClient() {
             return client;
         }
@@ -120,16 +164,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         public ResourceServerProperties getResource() {
             return resource;
         }
+
+
+
     }
 
     @Bean
     public PrincipalExtractor githubPrincipalExtractor() {
         return new GithubPrincipalExtractor();
-    }
-
-    @Bean
-    public AuthoritiesExtractor githubAuthoritiesExtractor() {
-        return new GithubAuthoritiesExtractor();
     }
 
 }
