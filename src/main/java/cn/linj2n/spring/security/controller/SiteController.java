@@ -1,8 +1,5 @@
 package cn.linj2n.spring.security.controller;
 
-import cn.linj2n.spring.security.config.SecurityUtil;
-import cn.linj2n.spring.security.config.The3rdPartyUserDetails;
-import cn.linj2n.spring.security.domain.User;
 import cn.linj2n.spring.security.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,14 +19,7 @@ public class SiteController {
 
     @RequestMapping(value = "/user/me")
     public String userInfo(ModelMap map) {
-        if (SecurityUtil.isThe3rdPartyUser()) {
-          The3rdPartyUserDetails userDetails = (The3rdPartyUserDetails) SecurityUtil.getCurrentPrincipal();
-          userService.updateUserProfile(userDetails);
-        }
-
-        String login = SecurityUtil.getCurrentUserLogin();
-        User user = userService.findByLogin(login);
-        map.put("user", user);
+        map.put("user", userService.getCurrentLoginUserInfo());
         return "index";
     }
 
